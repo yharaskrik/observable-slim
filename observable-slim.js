@@ -41,6 +41,7 @@ var ObservableSlim = (function() {
 			Parameters:
 				target 				- required, plain JavaScript object that we want to observe for changes.
 				domDelay 			- batch up changes on a 10ms delay so a series of changes can be processed in one DOM update.
+				objRef				- The obj ref to use as a version of 'this' from the original object that has been proxied
 				originalObservable 	- object, the original observable created by the user, exists for recursion purposes,
 									  allows one observable to observe change on any nested/child objects.
 				originalPath 		- array of objects, each object having the properties 'target' and 'property' -- target referring to the observed object itself
@@ -50,9 +51,11 @@ var ObservableSlim = (function() {
 			Returns:
 				An ES6 Proxy object.
 	*/
-	var _create = function(target, domDelay, originalObservable, originalPath) {
+	var _create = function(target, domDelay, objRef, originalObservable, originalPath) {
 
 		var observable = originalObservable || null;
+
+		var obj = objRef;
 		
 		// record the nested path taken to access this object -- if there was no path then we provide the first empty entry
 		var path = originalPath || [{"target":target,"property":""}];
@@ -123,7 +126,7 @@ var ObservableSlim = (function() {
 						changes = [];
 
 						// invoke any functions that are observing changes
-						for (var i = 0; i < observable.observers.length; i++) observable.observers[i](changesCopy);
+						for (var i = 0; i < observable.observers.length; i++) observable.observers[i](changesCopy, obj);
 
 					}
 				},10);
@@ -135,7 +138,7 @@ var ObservableSlim = (function() {
 				changes = [];
 
 				// invoke any functions that are observing changes
-				for (var i = 0; i < observable.observers.length; i++) observable.observers[i](changesCopy);
+				for (var i = 0; i < observable.observers.length; i++) observable.observers[i](changesCopy, obj);
 
 			}
 		};
@@ -188,7 +191,7 @@ var ObservableSlim = (function() {
 					// create a shallow copy of the path array -- if we didn't create a shallow copy then all nested objects would share the same path array and the path wouldn't be accurate
 					var newPath = path.slice(0);
 					newPath.push({"target":targetProp,"property":property});
-					return _create(targetProp, domDelay, observable, newPath);
+					return _create(targetProp, domDelay, objRef, observable, newPath);
 				} else {
 					return targetProp;
 				}
@@ -482,7 +485,7 @@ var ObservableSlim = (function() {
 			Returns:
 				An ES6 Proxy object.
 		*/
-		create: function(target, domDelay, observer) {
+		create: function(target, domDelay, observer, objRef) {
 
 			// test if the target is a Proxy, if it is then we need to retrieve the original object behind the Proxy.
 			// we do not allow creating proxies of proxies because -- given the recursive design of ObservableSlim -- it would lead to sharp increases in memory usage
@@ -494,7 +497,7 @@ var ObservableSlim = (function() {
 			}
 
 			// fire off the _create() method -- it will create a new observable and proxy and return the proxy
-			var proxy = _create(target, domDelay);
+			var proxy = _create(target, domDelay, objRef);
 
 			// assign the observer function
 			if (typeof observer === "function") this.observe(proxy, observer);
