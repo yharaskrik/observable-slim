@@ -55,7 +55,7 @@ var ObservableSlim = (function() {
 
 		var observable = originalObservable || null;
 
-		var obj = objRef;
+		var obj = objRef || null;
 		
 		// record the nested path taken to access this object -- if there was no path then we provide the first empty entry
 		var path = originalPath || [{"target":target,"property":""}];
@@ -126,6 +126,7 @@ var ObservableSlim = (function() {
 						changes = [];
 
 						// invoke any functions that are observing changes
+						// obj will be null if the a pass through ref was not passed in for the original object
 						for (var i = 0; i < observable.observers.length; i++) observable.observers[i](changesCopy, obj);
 
 					}
@@ -138,6 +139,7 @@ var ObservableSlim = (function() {
 				changes = [];
 
 				// invoke any functions that are observing changes
+                // obj will be null if the a pass through ref was not passed in for the original obj
 				for (var i = 0; i < observable.observers.length; i++) observable.observers[i](changesCopy, obj);
 
 			}
